@@ -31,6 +31,9 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'lastname',
+        'speciality',
+        'age',
     ];
 
     /**
@@ -65,5 +68,16 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function schedule()
+    {
+        return $this->hasOne(Schedules::class, 'doctor_id');
+    }
+
+    // Relación: Un usuario puede tener muchos comentarios
+    public function comments()
+    {
+        return $this->hasMany(Comments::class);
     }
 }
