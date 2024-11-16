@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Schedules;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class SchedulesController extends Controller
 {
@@ -12,7 +13,10 @@ class SchedulesController extends Controller
      */
     public function index()
     {
-        //
+        $schedule = Schedules::with('blocks')->where('doctor_id', auth()->id())->first();
+        return Inertia::render('Doctor/Dashboard', [
+            'schedule' => $schedule,
+        ]);
     }
 
     /**
@@ -28,9 +32,30 @@ class SchedulesController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'season' => 'required|string',
+        ]);
+    
+        // Verificar si el doctor ya tiene un horario
+        $existingSchedule = Schedules::where('doctor_id', auth()->id())->first();
+    
+        if ($existingSchedule) {
+            // Devolver el horario existente
+            return response()->json([
+                'message' => 'Ya tienes un horario creado.',
+                'schedule' => $existingSchedule,
+            ], 200);
+        }
+    
+        // Crear un nuevo horario si no existe
+        $schedule = Schedules::create([
+            'doctor_id' => auth()->id(),
+            'season' => $request->season,
+        ]);
+    
+        return response()->json($schedule, 201);
     }
-
+    
     /**
      * Display the specified resource.
      */

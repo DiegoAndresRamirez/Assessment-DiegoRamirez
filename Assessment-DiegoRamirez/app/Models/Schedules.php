@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Blocks;
 
 class Schedules extends Model
 {
@@ -18,6 +19,6 @@ class Schedules extends Model
 
     public function blocks()
     {
-        return $this->hasMany(Blocks::class);
+        return $this->hasMany(Blocks::class, 'schedule_id');
     }
 }
