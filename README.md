@@ -1,3 +1,4 @@
+
 # Assessment
 
 **Assessment** is a web application built with **Laravel 11**, **Inertia.js**, and **Vue.js**, designed to manage medical appointments between patients and doctors. The system implements authentication and authorization with **Jetstream** and **Spatie Permissions**.
