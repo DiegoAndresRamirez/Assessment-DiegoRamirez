@@ -6,6 +6,7 @@ use App\Http\Controllers\DoctorController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\SchedulesController;
 use App\Http\Controllers\UserController;
+use App\Models\Schedules;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -23,16 +24,26 @@ Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
     'verified',
-    ])->group(function () {
-        Route::get('/dashboard', function () {
-            // Aquí redirigimos según el rol del usuario autenticado
-            if (auth()->user()->hasRole('doctor')) {
-                return redirect()->route('doctor.dashboard'); 
-            } elseif (auth()->user()->hasRole('patient')) {
-                return redirect()->route('patient.dashboard'); 
-            }
-        });
-    });
+])->get('/dashboard', function () {
+    $user = auth()->user();
+
+    if ($user->hasRole('doctor')) {
+        // Si necesitas cargar el schedule u otros datos específicos del doctor hazlo aquí
+        $schedule = Schedules::where('doctor_id', $user->id)->with('blocks')->first();
+
+        return Inertia::render('Dashboard', [
+            'title' => 'Dashboard del Doctor',
+            'description' => 'Gestiona tus citas',
+            'schedule' => $schedule,
+        ]);
+    } elseif ($user->hasRole('patient')) {
+        // Datos específicos del paciente (si los necesitas)
+        return Inertia::render('Dashboard', [
+            'title' => 'Dashboard del Paciente',
+            'description' => 'Agenda tus citas',
+        ]);
+    }
+})->name('dashboard');
 
 Route::middleware(['auth', 'role:doctor'])->get('/doctor/dashboard', [DoctorController::class, 'index'])->name('doctor.dashboard');
 Route::middleware(['auth', 'role:doctor'])->group(function () {

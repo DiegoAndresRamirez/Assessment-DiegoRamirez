@@ -1,65 +1,40 @@
 <template>
-  <div class="container mx-auto">
-
-    <nav class="bg-blue-600 text-white p-4 flex justify-between items-center">
-      <div class="text-xl font-semibold">
-        {{ props.auth.user.name }} - Gestion de Citas
+  <div class="dashboard-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h2 class="sidebar-title">{{ props.auth.user.name }}</h2>
+        <span class="sidebar-subtitle">Gestión de Citas</span>
       </div>
-      <button @click="logout" class="bg-red-600 text-white px-4 py-2 rounded">
-        Logout
-      </button>
-    </nav>
+      <button @click="logout" class="sidebar-logout">Cerrar Sesión</button>
+    </aside>
 
-    <h1 class="text-3xl font-bold mb-6">{{ title }}</h1>
-    <p class="mb-6">{{ description }}</p>
-    <section class="hero bg-blue-600 text-white py-12 text-center">
-      <h1 class="text-4xl font-bold">Gestiona tus citas médicas</h1>
-      <p class="mt-4">Aquí puedes ver y gestionar las citas programadas con tus pacientes.</p>
-    </section>
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Header Section -->
+      <header class="main-header">
+        <h1 class="main-title">{{ title }}</h1>
+        <p class="main-description">{{ description }}</p>
+      </header>
 
-    <!-- Sección de Citas -->
-    <section class="my-12">
-      <h2 class="text-2xl font-semibold mb-4">Citas Programadas</h2>
+      <!-- Info Section -->
+      <section class="info-section">
+        <h2 class="info-title">Panel de Control</h2>
+        <p class="info-text">Gestiona tu horario y citas con pacientes de manera eficiente.</p>
+      </section>
 
-      <!-- Lista de citas -->
-      <div v-if="appointments.length === 0" class="text-gray-500">
-        No tienes citas programadas.
-      </div>
-      <div v-else>
-        <div v-for="appointment in appointments" :key="appointment.id" class="mb-4 p-4 bg-gray-100 rounded shadow">
-          <p><strong>Paciente:</strong> {{ appointment.patient.name }} - {{ appointment.patient.speciality }}</p>
-          <p><strong>Hora:</strong> {{ appointment.block.hour_start }} - {{ appointment.block.hour_end }}</p>
-          <p><strong>Motivo:</strong> {{ appointment.reason }}</p>
-          <p><strong>Estado:</strong>
-            <span :class="appointment.status === 'pending' ? 'text-yellow-500' : appointment.status === 'confirmed' ? 'text-green-500' : 'text-red-500'">
-              {{ appointment.status }}
-            </span>
-          </p>
-          
-          <!-- Botones de Confirmación/Cancelación -->
-          <div v-if="appointment.status === 'pending'" class="mt-2">
-            <button @click="changeStatus(appointment.id, 'confirmed')" class="bg-green-600 text-white px-4 py-2 rounded mr-2">Confirmar</button>
-            <button @click="changeStatus(appointment.id, 'cancelled')" class="bg-red-600 text-white px-4 py-2 rounded">Cancelar</button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Sección del Horario -->
-    <div class="mb-6">
-      <h2 class="text-xl font-semibold mb-2">Mi Horario</h2>
-
-      <div v-if="currentSchedule">
-        <!-- Si ya existe el horario, mostrarlo -->
-        <div class="p-4 bg-blue-100 rounded shadow">
+      <!-- Schedule Section -->
+      <section class="schedule-section">
+        <h2 class="section-title">Mi Horario</h2>
+        <div v-if="currentSchedule" class="schedule-container">
           <p><strong>Temporada:</strong> {{ currentSchedule.season }}</p>
-          <button @click="showBlockModal = true" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded">
-            Agregar Bloque
-          </button>
-
-          <!-- Lista de Bloques -->
-          <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div v-for="block in currentSchedule.blocks" :key="block.id" class="p-4 bg-white shadow rounded">
+          <button @click="showBlockModal = true" class="add-block-button">Agregar Bloque</button>
+          <div class="blocks-grid">
+            <div
+              v-for="block in currentSchedule.blocks"
+              :key="block.id"
+              class="block-card"
+            >
               <p><strong>Inicio:</strong> {{ block.hour_start }}</p>
               <p><strong>Fin:</strong> {{ block.hour_end }}</p>
               <p><strong>Día:</strong> {{ block.day }}</p>
@@ -67,39 +42,62 @@
             </div>
           </div>
         </div>
-      </div>
+        <div v-else class="no-schedule">
+          <button @click="showScheduleModal = true" class="create-schedule-button">Crear Horario</button>
+        </div>
+      </section>
 
-      <!-- Si no existe el horario, mostrar botón para crearlo -->
-      <div v-else>
-        <button @click="showScheduleModal = true" class="bg-blue-600 text-white px-4 py-2 rounded">
-          Crear Horario
-        </button>
-      </div>
-    </div>
+      <!-- Appointments Section -->
+      <section class="appointments-section">
+        <h2 class="section-title">Citas Programadas</h2>
+        <div v-if="appointments.length === 0" class="no-appointments">
+          No tienes citas programadas.
+        </div>
+        <div v-else class="appointment-list">
+          <div
+            v-for="appointment in appointments"
+            :key="appointment.id"
+            class="appointment-card"
+          >
+            <p><strong>Paciente:</strong> {{ appointment.patient.name }} - {{ appointment.patient.speciality }}</p>
+            <p><strong>Hora:</strong> {{ appointment.block.hour_start }} - {{ appointment.block.hour_end }}</p>
+            <p><strong>Motivo:</strong> {{ appointment.reason }}</p>
+            <p><strong>Estado:</strong>
+              <span :class="getStatusClass(appointment.status)">
+                {{ appointment.status }}
+              </span>
+            </p>
+            <div v-if="appointment.status === 'pending'" class="action-buttons">
+              <button @click="changeStatus(appointment.id, 'confirmed')" class="confirm-button">Confirmar</button>
+              <button @click="changeStatus(appointment.id, 'cancelled')" class="cancel-button">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      </section>
 
-    <!-- Modal para Crear Schedule -->
-    <modal v-if="showScheduleModal" @close="showScheduleModal = false">
-      <h3 class="text-lg font-bold mb-4">Crear Horario</h3>
-      <form @submit.prevent="createSchedule">
-        <input v-model="season" type="text" placeholder="Temporada" class="w-full mb-4 p-2 border rounded">
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Guardar</button>
-      </form>
-    </modal>
+      <!-- Modals -->
+      <modal v-if="showScheduleModal" @close="showScheduleModal = false">
+        <h3 class="modal-title">Crear Horario</h3>
+        <form @submit.prevent="createSchedule">
+          <input v-model="season" type="text" placeholder="Temporada" class="input-field">
+          <button type="submit" class="submit-button">Guardar</button>
+        </form>
+      </modal>
 
-    <!-- Modal para Crear Block -->
-    <modal v-if="showBlockModal" @close="showBlockModal = false">
-      <h3 class="text-lg font-bold mb-4">Agregar Bloque</h3>
-      <form @submit.prevent="createBlock">
-        <input v-model="hourStart" type="time" class="w-full mb-4 p-2 border rounded">
-        <input v-model="hourEnd" type="time" class="w-full mb-4 p-2 border rounded">
-        <input v-model="day" type="date" class="w-full mb-4 p-2 border rounded">
-        <select v-model="disponibility" class="w-full mb-4 p-2 border rounded">
-          <option value="available">Disponible</option>
-          <option value="unavailable">No Disponible</option>
-        </select>
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Guardar</button>
-      </form>
-    </modal>
+      <modal v-if="showBlockModal" @close="showBlockModal = false">
+        <h3 class="modal-title">Agregar Bloque</h3>
+        <form @submit.prevent="createBlock">
+          <input v-model="hourStart" type="time" class="input-field">
+          <input v-model="hourEnd" type="time" class="input-field">
+          <input v-model="day" type="date" class="input-field">
+          <select v-model="disponibility" class="input-field">
+            <option value="available">Disponible</option>
+            <option value="unavailable">No Disponible</option>
+          </select>
+          <button button type="submit" class="submit-button">Guardar</button>
+        </form>
+      </modal>
+    </main>
   </div>
 </template>
 
@@ -112,7 +110,7 @@ const props = defineProps({
   title: String,
   description: String,
   schedule: Object,
-  auth: Object, 
+  auth: Object,
 });
 
 const appointments = ref([]);
@@ -152,10 +150,7 @@ const createBlock = async () => {
       disponibility: disponibility.value,
     });
 
-    // Actualizar el schedule con los nuevos datos
     currentSchedule.value = response.data.schedule;
-
-    // Limpiar el formulario y cerrar el modal
     showBlockModal.value = false;
     hourStart.value = '';
     hourEnd.value = '';
@@ -184,14 +179,22 @@ const changeStatus = async (appointmentId, status) => {
   }
 };
 
+const getStatusClass = (status) => {
+  return {
+    'status-pending': status === 'pending',
+    'status-confirmed': status === 'confirmed',
+    'status-cancelled': status === 'cancelled'
+  };
+};
+
 onMounted(() => {
   loadAppointments();
 });
 
 const logout = async () => {
   try {
-    await axios.post('/logout'); 
-    window.location.href = '/login';  
+    await axios.post('/logout');
+    window.location.href = '/login';
   } catch (error) {
     console.error('Error al hacer logout:', error);
   }
@@ -199,40 +202,230 @@ const logout = async () => {
 </script>
 
 <style scoped>
-.container {
-  padding: 20px;
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
+.dashboard-container {
+  display: flex;
+  font-family: 'Arial', sans-serif;
+  height: 100vh;
+  color: #333;
+}
 
-.hero {
-  background-color: #1E40AF;
-  color: white;
-  padding: 4rem 0;
+/* Sidebar */
+.sidebar {
+  width: 250px;
+  background-color: #2e3b4e;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  justify-content: space-between;
+}
+
+.sidebar-header {
+  margin-bottom: 2rem;
+}
+
+.sidebar-title {
+  font-size: 1.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.sidebar-subtitle {
+  font-size: 0.9rem;
+  color: #ccc;
+}
+
+.sidebar-logout {
+  background: #bf3f3f;
+  border: none;
+  padding: 0.7rem 1rem;
+  width: 100%;
+  text-align: center;
+  border-radius: 0.25rem;
+  color: #fff;
+  cursor: pointer;
+}
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+  background: #f5f5f5;
+}
+
+.main-header {
+  margin-bottom: 1.5rem;
+}
+
+.main-title {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.main-description {
+  color: #666;
+  margin-bottom: 1rem;
+}
+
+.info-section {
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  margin-bottom: 2rem;
+  border: 1px solid #ddd;
+}
+
+.info-title {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+ .info-text {
+  font-size: 1rem;
+  color: #444;
+}
+
+/* Schedule Section */
+.schedule-section {
+  margin-bottom: 2rem;
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid #ddd;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.schedule-container {
+  margin-top: 1rem;
+}
+
+.add-block-button {
+  background: #4285f4;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  margin-top: 1rem;
+  cursor: pointer;
+  border-radius: 0.25rem;
+}
+
+.blocks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.block-card {
+  background: #fafafa;
+  border: 1px solid #ccc;
+  padding: 1rem;
+  border-radius: 0.25rem;
+}
+
+.no-schedule {
   text-align: center;
 }
 
-.hero button {
-  background-color: #3B82F6;
-  color: white;
-  padding: 1rem 2rem;
-  border-radius: 9999px;
-  font-size: 1rem;
-}
-
-nav {
-  background-color: #1E40AF;
-  color: white;
-  padding: 1rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-nav button {
-  background-color: #EF4444;
-  color: white;
+.create-schedule-button {
+  background: #4285f4;
+  color: #fff;
+  border: none;
   padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
   cursor: pointer;
+  border-radius: 0.25rem;
+}
+
+/* Appointments Section */
+.appointments-section {
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid #ddd;
+}
+
+.no-appointments {
+  color: #999;
+  font-style: italic;
+}
+
+.appointment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.appointment-card {
+  background: #fafafa;
+  border: 1px solid #ddd;
+  padding: 1rem;
+  border-radius: 0.25rem;
+}
+
+.status-pending {
+  color: #c90;
+}
+.status-confirmed {
+  color: #5cb85c;
+}
+.status-cancelled {
+  color: #d9534f;
+}
+
+.action-buttons {
+  margin-top: 1rem;
+}
+
+.confirm-button {
+  background: #5cb85c;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  margin-right: 0.5rem;
+  cursor: pointer;
+  border-radius: 0.25rem;
+}
+
+.cancel-button {
+  background: #d9534f;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  border-radius: 0.25rem;
+}
+
+/* Modal */
+.modal-title {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.input-field {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  margin-bottom: 1rem;
+  border-radius: 0.25rem;
+}
+
+.submit-button {
+  background: #5cb85c;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  border-radius: 0.25rem;
 }
 </style>

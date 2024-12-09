@@ -1,22 +1,21 @@
 <script setup>
-import AppLayout from '@/Layouts/AppLayout.vue';
-import Welcome from '@/Components/Welcome.vue';
+import DashboardDoctor from '@/Pages/Doctor/Dashboard.vue';
+import DashboardPatient from '@/Pages/Patient/Dashboard.vue';
+
+const props = defineProps({
+    auth: Object,
+    title: String,
+    description: String,
+    schedule: Object
+});
 </script>
 
 <template>
-    <AppLayout title="Dashboard">
-        <template #header>
-            <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-                Dashboard
-            </h2>
-        </template>
-
-        <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-xl sm:rounded-lg">
-                    <Welcome />
-                </div>
-            </div>
-        </div>
-    </AppLayout>
+    <component 
+        :is="auth.user.roles.includes('doctor') ? DashboardDoctor : DashboardPatient"
+        :auth="auth"
+        :schedule="schedule"
+        :title="title"
+        :description="description">
+    </component>
 </template>

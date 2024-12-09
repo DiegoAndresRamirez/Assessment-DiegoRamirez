@@ -1,245 +1,422 @@
 <template>
-    <div class="container mx-auto">
-
-        <nav class="bg-blue-600 text-white p-4 flex justify-between items-center">
-            <div class="text-xl font-semibold">
-                {{ props.auth.user.name }} - Gestion de Citas
-            </div>
-            <button @click="logout" class="bg-red-600 text-white px-4 py-2 rounded">
-                Logout
-            </button>
-        </nav>
-
-        <h1 class="text-3xl font-bold mb-6">{{ title }}</h1>
-        <p class="mb-6">{{ description }}</p>
-        <!-- Hero Section -->
-        <section class="hero bg-blue-600 text-white py-12 text-center">
-            <h1 class="text-4xl font-bold">Agenda tu cita médica</h1>
-            <p class="mt-4">Escoge tu doctor y agenda una cita con facilidad.</p>
-            <button @click="showCreateModal = true" class="bg-white text-blue-600 px-6 py-2 mt-6 rounded-full">Crear
-                Cita</button>
+    <div class="dashboard-wrapper">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <h2 class="sidebar-title">{{ props.auth.user.name }}</h2>
+          <span class="sidebar-subtitle">Gestión de Citas</span>
+        </div>
+  
+        <button @click="logout" class="sidebar-logout">Cerrar Sesión</button>
+      </aside>
+  
+      <!-- Main Content Area -->
+      <main class="main-content">
+        <!-- Header Section -->
+        <header class="main-header">
+          <h1 class="main-title">{{ title }}</h1>
+          <p class="main-description">{{ description }}</p>
+        </header>
+  
+        <!-- Info Section (información general) -->
+        <section class="info-section">
+          <h2 class="info-title">Agenda tus citas médicas</h2>
+          <p class="info-text">Selecciona el doctor, el horario y agenda tu cita con facilidad.</p>
+          <button @click="showCreateModal = true" class="create-appointment-button">Crear Cita</button>
         </section>
-
-        <!-- Mostrar las citas -->
-        <section class="my-12">
-            <h2 class="text-2xl font-semibold mb-4">Mis Citas</h2>
-
-            <!-- Filtro por estado -->
-            <div class="mb-4">
-                <label for="statusFilter" class="mr-2">Filtrar por estado:</label>
-                <select v-model="statusFilter" @change="filterAppointments" class="p-2 border rounded">
-                    <option value="all">Todos</option>
-                    <option value="pending">Pendiente</option>
-                    <option value="confirmed">Confirmada</option>
-                    <option value="cancelled">Cancelada</option>
-                </select>
-            </div>
-
-            <!-- Lista de citas -->
-            <div v-if="filteredAppointments.length === 0" class="text-gray-500">
-                No tienes citas programadas.
-            </div>
-            <div v-else>
-                <div v-for="appointment in filteredAppointments" :key="appointment.id"
-                    class="mb-4 p-4 bg-gray-100 rounded shadow">
-                    <p><strong>Doctor:</strong> {{ appointment.doctor.name }} - {{ appointment.doctor.speciality }}</p>
-                    <p><strong>Hora:</strong> {{ appointment.block.hour_start }} - {{ appointment.block.hour_end }}</p>
-                    <p><strong>Motivo:</strong> {{ appointment.reason }}</p>
-                    <p><strong>Estado:</strong>
-                        <span
-                            :class="appointment.status === 'pending' ? 'text-yellow-500' : appointment.status === 'confirmed' ? 'text-green-500' : 'text-red-500'">
-                            {{ appointment.status }}
-                        </span>
-                    </p>
-                </div>
-            </div>
+  
+        <!-- Filtros de Citas -->
+        <section class="filter-section">
+          <h2 class="section-title">Mis Citas</h2>
+          <div class="filter-container">
+            <label for="statusFilter" class="filter-label">Filtrar por estado:</label>
+            <select v-model="statusFilter" @change="filterAppointments" class="filter-select">
+              <option value="all">Todos</option>
+              <option value="pending">Pendiente</option>
+              <option value="confirmed">Confirmada</option>
+              <option value="cancelled">Cancelada</option>
+            </select>
+          </div>
         </section>
-
+  
+        <!-- Lista de Citas -->
+        <section class="appointments-section">
+          <div v-if="filteredAppointments.length === 0" class="no-appointments">
+            No tienes citas programadas.
+          </div>
+          <div v-else class="appointment-list">
+            <div v-for="appointment in filteredAppointments" :key="appointment.id" class="appointment-card">
+              <p><strong>Doctor:</strong> {{ appointment.doctor.name }} - {{ appointment.doctor.speciality }}</p>
+              <p><strong>Hora:</strong> {{ appointment.block.hour_start }} - {{ appointment.block.hour_end }}</p>
+              <p><strong>Motivo:</strong> {{ appointment.reason }}</p>
+              <p><strong>Estado:</strong>
+                <span
+                  :class="{
+                    'status-pending': appointment.status === 'pending',
+                    'status-confirmed': appointment.status === 'confirmed',
+                    'status-cancelled': appointment.status === 'cancelled'
+                  }"
+                >
+                  {{ appointment.status }}
+                </span>
+              </p>
+            </div>
+          </div>
+        </section>
+  
         <!-- Modal para Crear Cita -->
         <modal v-if="showCreateModal" @close="showCreateModal = false">
-            <h3 class="text-lg font-bold mb-4">Crear Cita</h3>
-            <form @submit.prevent="createAppointment">
-                <!-- Selección del doctor -->
-                <div class="mb-4">
-                    <label for="doctor" class="block">Selecciona el Doctor</label>
-                    <select v-model="doctorId" @change="loadBlocks" class="w-full p-2 border rounded">
-                        <option v-for="doctor in doctors" :key="doctor.id" :value="doctor.id">
-                            {{ doctor.name }} - {{ doctor.speciality }}
-                        </option>
-                    </select>
-                </div>
-
-                <!-- Selección del bloque (solo si hay bloques disponibles) -->
-                <div v-if="blocks.length > 0" class="mb-4">
-                    <label for="block" class="block">Selecciona el Horario</label>
-                    <select v-model="blockId" class="w-full p-2 border rounded">
-                        <option v-for="block in blocks" :key="block.id" :value="block.id">
-                            {{ block.hour_start }} - {{ block.hour_end }} | {{ block.day }}
-                        </option>
-                    </select>
-                </div>
-                <div v-else class="text-gray-500 mb-4">No hay horarios disponibles para este doctor.</div>
-
-                <!-- Motivo y especialidad -->
-                <div class="mb-4">
-                    <label for="reason" class="block">Motivo de la cita</label>
-                    <input v-model="reason" type="text" placeholder="Motivo" class="w-full p-2 border rounded" required>
-                </div>
-
-                <div class="mb-4">
-                    <label for="speciality" class="block">Especialidad</label>
-                    <input v-model="speciality" type="text" placeholder="Especialidad" class="w-full p-2 border rounded"
-                        required>
-                </div>
-
-                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Agendar Cita</button>
-            </form>
+          <h3 class="modal-title">Crear Cita</h3>
+          <form @submit.prevent="createAppointment">
+            <div class="modal-field-group">
+              <label for="doctor" class="modal-label">Selecciona el Doctor</label>
+              <select v-model="doctorId" @change="loadBlocks" class="input-field">
+                <option v-for="doctor in doctors" :key="doctor.id" :value="doctor.id">
+                  {{ doctor.name }} - {{ doctor.speciality }}
+                </option>
+              </select>
+            </div>
+  
+            <div v-if="blocks.length > 0" class="modal-field-group">
+              <label for="block" class="modal-label">Selecciona el Horario</label>
+              <select v-model="blockId" class="input-field">
+                <option v-for="block in blocks" :key="block.id" :value="block.id">
+                  {{ block.hour_start }} - {{ block.hour_end }} | {{ block.day }}
+                </option>
+              </select>
+            </div>
+            <div v-else class="no-blocks-info">
+              No hay horarios disponibles para este doctor.
+            </div>
+  
+            <div class="modal-field-group">
+              <label for="reason" class="modal-label">Motivo de la cita</label>
+              <input v-model="reason" type="text" placeholder="Motivo" class="input-field" required>
+            </div>
+  
+            <div class="modal-field-group">
+              <label for="speciality" class="modal-label">Especialidad</label>
+              <input v-model="speciality" type="text" placeholder="Especialidad" class="input-field" required>
+            </div>
+  
+            <button type="submit" class="submit-button">Agendar Cita</button>
+          </form>
         </modal>
+      </main>
     </div>
-</template>
-
-<script setup>
-import { ref, onMounted, computed } from 'vue';
-import axios from 'axios';
-import Modal from '@/Components/ModalDoctor.vue';
-
-const showCreateModal = ref(false);
-const doctors = ref([]);
-const blocks = ref([]);
-const appointments = ref([]);
-const statusFilter = ref('all');
-const doctorId = ref(null);
-const blockId = ref(null);
-const reason = ref('');
-const speciality = ref('');
-
-const props = defineProps({
+  </template>
+  
+  <script setup>
+  import { ref, onMounted, computed } from 'vue';
+  import axios from 'axios';
+  import Modal from '@/Components/ModalDoctor.vue';
+  
+  const showCreateModal = ref(false);
+  const doctors = ref([]);
+  const blocks = ref([]);
+  const appointments = ref([]);
+  const statusFilter = ref('all');
+  const doctorId = ref(null);
+  const blockId = ref(null);
+  const reason = ref('');
+  const speciality = ref('');
+  
+  const props = defineProps({
     auth: Object,
     title: String,
     description: String,
-});
-
-// Cargar los doctores desde la API
-const loadDoctors = async () => {
+  });
+  
+  // Cargar los doctores desde la API
+  const loadDoctors = async () => {
     try {
-        const response = await axios.get('/doctors');
-        doctors.value = response.data;
+      const response = await axios.get('/doctors');
+      doctors.value = response.data;
     } catch (error) {
-        console.error('Error al cargar los doctores:', error);
+      console.error('Error al cargar los doctores:', error);
     }
-};
-
-// Cargar los bloques de un doctor seleccionado
-const loadBlocks = async () => {
+  };
+  
+  // Cargar los bloques de un doctor seleccionado
+  const loadBlocks = async () => {
     if (doctorId.value) {
-        try {
-            const response = await axios.get(`/appointments/blocks/${doctorId.value}`);
-            blocks.value = response.data;
-        } catch (error) {
-            console.error('Error al cargar los bloques:', error);
-        }
+      try {
+        const response = await axios.get(`/appointments/blocks/${doctorId.value}`);
+        blocks.value = response.data;
+      } catch (error) {
+        console.error('Error al cargar los bloques:', error);
+      }
     } else {
-        blocks.value = [];
+      blocks.value = [];
     }
-};
-
-// Filtrar las citas por estado
-const filterAppointments = () => {
-    // Esto es solo necesario si se quiere controlar el filtrado manualmente, pero con una propiedad computada puede ser más simple.
-};
-
-// Propiedad computada para las citas filtradas
-const filteredAppointments = computed(() => {
+  };
+  
+  // Propiedad computada para las citas filtradas
+  const filteredAppointments = computed(() => {
     if (statusFilter.value === 'all') {
-        return appointments.value;
+      return appointments.value;
     }
     return appointments.value.filter(appointment => appointment.status === statusFilter.value);
-});
-
-// Cargar las citas del paciente
-const loadAppointments = async () => {
+  });
+  
+  // Cargar las citas del paciente
+  const loadAppointments = async () => {
     try {
-        const response = await axios.get('/appointments');
-        appointments.value = response.data;
+      const response = await axios.get('/appointments');
+      appointments.value = response.data;
     } catch (error) {
-        console.error('Error al cargar las citas:', error);
+      console.error('Error al cargar las citas:', error);
     }
-};
-
-// Crear la cita
-const createAppointment = async () => {
+  };
+  
+  // Crear la cita
+  const createAppointment = async () => {
     try {
-        await axios.post('/appointments', {
-            doctor_id: doctorId.value,
-            block_id: blockId.value,
-            reason: reason.value,
-            speciality: speciality.value,
-        });
-
-        // Limpiar el formulario y cerrar el modal
-        reason.value = '';
-        speciality.value = '';
-        doctorId.value = null;
-        blockId.value = null;
-        blocks.value = [];
-
-        showCreateModal.value = false;
-        loadAppointments(); // Recargar citas después de crear una
+      await axios.post('/appointments', {
+        doctor_id: doctorId.value,
+        block_id: blockId.value,
+        reason: reason.value,
+        speciality: speciality.value,
+      });
+  
+      // Limpiar el formulario y cerrar el modal
+      reason.value = '';
+      speciality.value = '';
+      doctorId.value = null;
+      blockId.value = null;
+      blocks.value = [];
+  
+      showCreateModal.value = false;
+      loadAppointments(); // Recargar citas después de crear una
     } catch (error) {
-        console.error('Error al crear la cita:', error);
+      console.error('Error al crear la cita:', error);
     }
-};
-
-// Cargar los doctores y citas cuando se monta el componente
-onMounted(() => {
+  };
+  
+  // Cargar doctores y citas al montar
+  onMounted(() => {
     loadDoctors();
     loadAppointments();
-});
-
-const logout = async () => {
+  });
+  
+  const logout = async () => {
     try {
-        await axios.post('/logout');
-        window.location.href = '/login';
+      await axios.post('/logout');
+      window.location.href = '/login';
     } catch (error) {
-        console.error('Error al hacer logout:', error);
+      console.error('Error al hacer logout:', error);
     }
-};
-</script>
-
-<style scoped>
-.container {
-    padding: 20px;
-}
-
-.hero {
-    background-color: #1E40AF;
-    color: white;
-    padding: 4rem 0;
-    text-align: center;
-}
-
-.hero button {
-    background-color: #3B82F6;
-    color: white;
-    padding: 1rem 2rem;
-    border-radius: 9999px;
-    font-size: 1rem;
-}
-
-nav {
-    background-color: #1E40AF;
-    color: white;
-    padding: 1rem;
+  };
+  
+  // Este método está vacío, pero se mantiene la funcionalidad de filtro por si se quiere agregar lógica adicional
+  const filterAppointments = () => {};
+  </script>
+  
+  <style scoped>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .dashboard-wrapper {
     display: flex;
+    font-family: sans-serif;
+    height: 100vh;
+    color: #333;
+  }
+  
+  /* Sidebar */
+  .sidebar {
+    width: 250px;
+    background-color: #2e3b4e;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
     justify-content: space-between;
-    align-items: center;
-}
-
-nav button {
-    background-color: #EF4444;
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
+  }
+  
+  .sidebar-header {
+    margin-bottom: 2rem;
+  }
+  
+  .sidebar-title {
+    font-size: 1.4rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .sidebar-subtitle {
+    font-size: 0.9rem;
+    color: #ccc;
+  }
+  
+  .sidebar-logout {
+    background: #bf3f3f;
+    border: none;
+    padding: 0.7rem 1rem;
+    width: 100%;
+    text-align: center;
+    border-radius: 0.25rem;
+    color: #fff;
     cursor: pointer;
-}
-</style>
+  }
+  
+  /* Main Content */
+  .main-content {
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+    background: #f5f5f5;
+  }
+  
+  .main-header {
+    margin-bottom: 1.5rem;
+  }
+  
+  .main-title {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .main-description {
+    color: #666;
+    margin-bottom: 1rem;
+  }
+  
+  .info-section {
+    background: #fff;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    margin-bottom: 2rem;
+    border: 1px solid #ddd;
+  }
+  
+  .info-title {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .info-text {
+    font-size: 1rem;
+    color: #444;
+    margin-bottom: 1rem;
+  }
+  
+  .create-appointment-button {
+    background: #4285f4;
+    color: #fff;
+    border: none;
+    padding: 0.7rem 1.2rem;
+    cursor: pointer;
+    border-radius: 0.25rem;
+    font-size: 1rem;
+  }
+  
+  /* Filter Section */
+  .filter-section {
+    background: #fff;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    margin-bottom: 2rem;
+    border: 1px solid #ddd;
+  }
+  
+  .section-title {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .filter-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .filter-label {
+    font-weight: bold;
+  }
+  
+  .filter-select {
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    border: 1px solid #ccc;
+  }
+  
+  /* Appointments Section */
+  .appointments-section {
+    background: #fff;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid #ddd;
+    margin-bottom: 2rem;
+  }
+  
+  .no-appointments {
+    color: #999;
+    font-style: italic;
+  }
+  
+  .appointment-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  
+  .appointment-card {
+    background: #fafafa;
+    border: 1px solid #ddd;
+    padding: 1rem;
+    border-radius: 0.25rem;
+  }
+  
+  .status-pending {
+    color: #c90;
+  }
+  .status-confirmed {
+    color: #5cb85c;
+  }
+  .status-cancelled {
+    color: #d9534f;
+  }
+  
+  /* Modal */
+  .modal-title {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+  }
+  
+  .modal-field-group {
+    margin-bottom: 1rem;
+  }
+  
+  .modal-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+  }
+  
+  .input-field {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 0.25rem;
+  }
+  
+  .no-blocks-info {
+    color: #666;
+    font-style: italic;
+    margin-bottom: 1rem;
+  }
+  
+  .submit-button {
+    background: #5cb85c;
+    color: #fff;
+    border: none;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    border-radius: 0.25rem;
+  }
+  </style>
+  
