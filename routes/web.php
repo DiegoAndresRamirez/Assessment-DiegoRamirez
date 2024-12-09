@@ -45,7 +45,6 @@ Route::middleware([
     }
 })->name('dashboard');
 
-Route::middleware(['auth', 'role:doctor'])->get('/doctor/dashboard', [DoctorController::class, 'index'])->name('doctor.dashboard');
 Route::middleware(['auth', 'role:doctor'])->group(function () {
     Route::post('/schedules', [SchedulesController::class, 'store'])->name('schedules.store');
     Route::post('/blocks', [BlocksController::class, 'store'])->name('blocks.store');
@@ -54,7 +53,6 @@ Route::middleware(['auth', 'role:doctor'])->group(function () {
 
 });
 
-Route::middleware(['auth', 'role:patient'])->get('/patient/dashboard', [PatientController::class, 'index'])->name('patient.dashboard');
 Route::middleware(['auth', 'role:patient'])->group(function () {
     Route::get('/appointments/blocks/{doctorId}', [AppointmentsController::class, 'getBlocksForDoctor']);
     Route::post('/appointments', [AppointmentsController::class, 'store'])->name('appointments.store');
